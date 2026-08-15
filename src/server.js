@@ -58,6 +58,11 @@ app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: true, limit: "2mb" }));
 app.use(cookieParser());
 
+// ─── Root health check (for hosting providers like Render) ───────────────
+app.get("/", (req, res) => {
+  res.status(200).send("NannyPro API is running");
+});
+
 // ─── Health check ──────────────────────────────────────────────────────────
 app.get("/api/v1/health", (req, res) => {
   res.status(200).json({
