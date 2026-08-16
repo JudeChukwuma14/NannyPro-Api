@@ -132,7 +132,7 @@ const FIELD_TO_DOC_TYPE = {
 const processUploadedFiles = async (files, applicationReference) => {
   if (!files || Object.keys(files).length === 0) return [];
 
-  const folder = \`nanny-applications/\${applicationReference}\`;
+  const folder = `nanny-applications/${applicationReference}`;
   const documentMeta = [];
 
   for (const [fieldName, fileArray] of Object.entries(files)) {
