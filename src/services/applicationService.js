@@ -3,128 +3,105 @@ const { uploadFile } = require("./cloudinaryService");
 /**
  * Maps the frontend's flat form data object to the nested Application schema.
  *
- * The frontend sends a flat object where day availability is represented as
- * individual boolean fields (day_Monday, day_Tuesday, etc).
- * We normalise these into a daysAvailable array.
- *
  * @param {Object} formData - Raw flat data from the frontend
  * @returns {Object} Nested object ready to pass to new Application(...)
  */
 const mapFormDataToSchema = (formData) => {
-  const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+  // Handle skills array parsing if it comes as a stringified array from FormData
+  let parsedSkills = [];
+  try {
+    if (formData.skills) {
+      parsedSkills = typeof formData.skills === 'string' ? JSON.parse(formData.skills) : formData.skills;
+    }
+  } catch (e) {
+    if (typeof formData.skills === 'string') {
+      parsedSkills = formData.skills.split(',').map(s => s.trim());
+    }
+  }
 
-  // Collect which days are selected
-  const daysAvailable = DAYS.filter((day) => formData[`day_${day}`] === true || formData[`day_${day}`] === "true");
+  // Handle workTypes
+  let parsedWorkTypes = [];
+  try {
+    if (formData.workTypes) {
+      parsedWorkTypes = typeof formData.workTypes === 'string' ? JSON.parse(formData.workTypes) : formData.workTypes;
+    }
+  } catch (e) {
+    if (typeof formData.workTypes === 'string') {
+      parsedWorkTypes = formData.workTypes.split(',').map(s => s.trim());
+    }
+  }
+
+  // Helper to parse numbers safely
+  const parseNum = (val) => {
+    const num = Number(val);
+    return isNaN(num) ? 0 : num;
+  };
 
   return {
     personalDetails: {
-      fullName: formData.fullName,
-      preferredName: formData.preferredName,
+      firstName: formData.firstName,
+      lastName: formData.lastName,
       dateOfBirth: formData.dateOfBirth,
       email: formData.email,
       phone: formData.phone,
-      address: formData.address,
+      address1: formData.address1,
+      address2: formData.address2,
       city: formData.city,
       postcode: formData.postcode,
-      nationality: formData.nationality,
-      languages: formData.languages,
+      area: formData.area,
+    },
+
+    workPreferences: {
+      workTypes: parsedWorkTypes,
+      employmentType: formData.employmentType,
+      workingArrangement: formData.workingArrangement,
+      preferredWorkingHours: formData.preferredWorkingHours,
+      areasWillingToWork: formData.areasWillingToWork,
+      maximumTravelDistance: formData.maximumTravelDistance,
+      startDate: formData.startDate,
     },
 
     experience: {
-      yearsChildcareExp: formData.yearsChildcareExp,
-      yearsNannyExp: formData.yearsNannyExp,
-      ageGroups: Array.isArray(formData.ageGroups) ? formData.ageGroups : [],
-      previousRoles: formData.previousRoles,
-      newbornExp: formData.newbornExp,
-      toddlerExp: formData.toddlerExp,
-      schoolAgeExp: formData.schoolAgeExp,
-      multipleChildrenExp: formData.multipleChildrenExp,
-      additionalNeedsExp: formData.additionalNeedsExp,
-      additionalNeedsDetail: formData.additionalNeedsDetail,
-      otherExp: formData.otherExp,
-    },
-
-    qualifications: {
-      childcareQualifications: formData.childcareQualifications,
-      otherQualifications: formData.otherQualifications,
-      paediatricFirstAid: formData.paediatricFirstAid,
-      otherFirstAid: formData.otherFirstAid,
-      otherCertificates: formData.otherCertificates,
-    },
-
-    dbs: {
-      hasCurrentDBS: formData.hasCurrentDBS,
-      dbsType: formData.dbsType,
-      dbsDate: formData.dbsDate,
-      dbsUpdateService: formData.dbsUpdateService,
-      dbsCertNumber: formData.dbsCertNumber,
-      dbsAdditionalInfo: formData.dbsAdditionalInfo,
-    },
-
-    rightToWork: {
-      rightToWork: formData.rightToWork,
-      rightToWorkType: formData.rightToWorkType,
-      rightToWorkDetails: formData.rightToWorkDetails,
-    },
-
-    availability: {
-      startDate: formData.startDate,
-      workType: formData.workType,
-      liveInOut: formData.liveInOut,
-      hoursAvailable: formData.hoursAvailable,
-      weekendAvailability: formData.weekendAvailability,
-      eveningAvailability: formData.eveningAvailability,
-      preferredHours: formData.preferredHours,
-      areasWillingToWork: formData.areasWillingToWork,
-      maxDistance: formData.maxDistance,
-      daysAvailable,
+      professionalChildcareExperienceYears: parseNum(formData.professionalChildcareExperienceYears),
+      ageGroupExperience: {
+        newborns: parseNum(formData.newborns),
+        toddlers: parseNum(formData.toddlers),
+        preschool: parseNum(formData.preschool),
+        schoolAge: parseNum(formData.schoolAge),
+        teenagers: parseNum(formData.teenagers),
+      },
+      previousChildcareExperience: formData.previousChildcareExperience,
+      multipleChildrenExperience: formData.multipleChildrenExperience,
+      additionalNeedsExperience: formData.additionalNeedsExperience,
     },
 
     skills: {
-      skillDriving: !!formData.skillDriving,
-      skillCar: !!formData.skillCar,
-      skillNewborn: !!formData.skillNewborn,
-      skillCooking: !!formData.skillCooking,
-      skillHomework: !!formData.skillHomework,
-      skillSwimming: !!formData.skillSwimming,
-      skillLanguages: !!formData.skillLanguages,
-      skillSEN: !!formData.skillSEN,
-      skillSleep: !!formData.skillSleep,
-      skillSchoolRuns: !!formData.skillSchoolRuns,
-      skillOther: !!formData.skillOther,
-      otherSkillsDetail: formData.otherSkillsDetail,
+      skills: Array.isArray(parsedSkills) ? parsedSkills : [],
+      languages: formData.languages,
+      otherSkillsInterests: formData.otherSkillsInterests,
+      drivingLicence: formData.drivingLicence === true || formData.drivingLicence === "true",
+      carAccess: formData.carAccess === true || formData.carAccess === "true",
     },
 
-    about: {
-      aboutYourself: formData.aboutYourself,
-      whyNanny: formData.whyNanny,
-      enjoyAboutChildcare: formData.enjoyAboutChildcare,
-      familyType: formData.familyType,
+    qualifications: {
+      enhancedDBS: formData.enhancedDBS,
+      paediatricFirstAid: formData.paediatricFirstAid,
+      childcareQualifications: formData.childcareQualifications,
+      otherQualifications: formData.otherQualifications,
+    },
+
+    additionalInfo: {
+      swimming: formData.swimming,
+      animalAllergy: formData.animalAllergy,
     },
 
     declaration: {
-      declarationAccurate: formData.declarationAccurate === true || formData.declarationAccurate === "true",
-      consentReview: formData.consentReview === true || formData.consentReview === "true",
-      consentReferences: formData.consentReferences === true || formData.consentReferences === "true",
-      agreePrivacy: formData.agreePrivacy === true || formData.agreePrivacy === "true",
-      agreeTerms: formData.agreeTerms === true || formData.agreeTerms === "true",
-      declarationName: formData.declarationName,
-      declarationDate: formData.declarationDate,
-    },
-
-    references: Array.isArray(formData.references)
-      ? formData.references
-          .filter((r) => r && r.employerName)
-          .map((r) => ({
-            employerName: r.employerName,
-            email: r.email,
-            phone: r.phone,
-            role: r.role,
-            relationship: r.relationship,
-            startDate: r.startDate,
-            endDate: r.endDate,
-          }))
-      : [],
+      informationAccurate: formData.informationAccurate === true || formData.informationAccurate === "true",
+      applicationReviewConsent: formData.applicationReviewConsent === true || formData.applicationReviewConsent === "true",
+      referenceConsent: formData.referenceConsent === true || formData.referenceConsent === "true",
+      privacyPolicyConsent: formData.privacyPolicyConsent === true || formData.privacyPolicyConsent === "true",
+      termsConsent: formData.termsConsent === true || formData.termsConsent === "true",
+    }
   };
 };
 
@@ -133,6 +110,7 @@ const mapFormDataToSchema = (formData) => {
  * Maps Multer field names to the Document type enum in the Application model.
  */
 const FIELD_TO_DOC_TYPE = {
+  cv: "CV",
   docId: "ID",
   docDBS: "DBS",
   dbsCertFiles: "DBS",
@@ -154,7 +132,7 @@ const FIELD_TO_DOC_TYPE = {
 const processUploadedFiles = async (files, applicationReference) => {
   if (!files || Object.keys(files).length === 0) return [];
 
-  const folder = `nanny-applications/${applicationReference}`;
+  const folder = \`nanny-applications/\${applicationReference}\`;
   const documentMeta = [];
 
   for (const [fieldName, fileArray] of Object.entries(files)) {

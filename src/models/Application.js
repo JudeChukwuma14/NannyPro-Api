@@ -6,7 +6,7 @@ const documentSchema = new mongoose.Schema(
   {
     type: {
       type: String,
-      enum: ["ID", "DBS", "PAEDIATRIC_FIRST_AID", "CHILDCARE_QUALIFICATION", "RIGHT_TO_WORK", "OTHER"],
+      enum: ["CV", "ID", "DBS", "PAEDIATRIC_FIRST_AID", "CHILDCARE_QUALIFICATION", "RIGHT_TO_WORK", "OTHER"],
       required: true,
     },
     originalName: { type: String, required: true },
@@ -17,19 +17,6 @@ const documentSchema = new mongoose.Schema(
     format: { type: String },
     bytes: { type: Number },
     uploadedAt: { type: Date, default: Date.now },
-  },
-  { _id: true }
-);
-
-const referenceSchema = new mongoose.Schema(
-  {
-    employerName: { type: String, trim: true },
-    email: { type: String, trim: true, lowercase: true },
-    phone: { type: String, trim: true },
-    role: { type: String, trim: true },
-    relationship: { type: String, trim: true },
-    startDate: { type: String },
-    endDate: { type: String },
   },
   { _id: true }
 );
@@ -68,117 +55,79 @@ const applicationSchema = new mongoose.Schema(
       index: true,
     },
 
-    // ── Personal Details ─────────────────────────────────────────────────────
+    // ── STEP 1: Personal Details ─────────────────────────────────────────────
     personalDetails: {
-      fullName: { type: String, trim: true, required: true },
-      preferredName: { type: String, trim: true },
-      dateOfBirth: { type: String },
+      firstName: { type: String, trim: true, required: true },
+      lastName: { type: String, trim: true, required: true },
+      dateOfBirth: { type: String, required: true },
       email: { type: String, trim: true, lowercase: true, required: true },
-      phone: { type: String, trim: true },
-      address: { type: String, trim: true },
-      city: { type: String, trim: true },
-      postcode: { type: String, trim: true },
-      nationality: { type: String, trim: true },
-      languages: { type: String, trim: true },
+      phone: { type: String, trim: true, required: true },
+      address1: { type: String, trim: true, required: true },
+      address2: { type: String, trim: true },
+      city: { type: String, trim: true, required: true },
+      postcode: { type: String, trim: true, required: true },
+      area: { type: String, trim: true, required: true },
     },
 
-    // ── Childcare Experience ─────────────────────────────────────────────────
+    // ── STEP 2: Work Preferences ─────────────────────────────────────────────
+    workPreferences: {
+      workTypes: [{ type: String, enum: ["permanent", "backupCare", "holidayWork", "all"] }],
+      employmentType: { type: String, trim: true }, // Full-time / Part-time
+      workingArrangement: { type: String, trim: true }, // Live-in / Live-out
+      preferredWorkingHours: { type: String, trim: true },
+      areasWillingToWork: { type: String, trim: true },
+      maximumTravelDistance: { type: String, trim: true },
+      startDate: { type: String },
+    },
+
+    // ── STEP 3: Childcare Experience ──────────────────────────────────────────
     experience: {
-      yearsChildcareExp: { type: String },
-      yearsNannyExp: { type: String },
-      ageGroups: [{ type: String }],
-      previousRoles: { type: String, trim: true },
-      newbornExp: { type: String },
-      toddlerExp: { type: String },
-      schoolAgeExp: { type: String },
-      multipleChildrenExp: { type: String },
-      additionalNeedsExp: { type: String },
-      additionalNeedsDetail: { type: String, trim: true },
-      otherExp: { type: String, trim: true },
+      professionalChildcareExperienceYears: { type: Number },
+      ageGroupExperience: {
+        newborns: { type: Number, default: 0 },
+        toddlers: { type: Number, default: 0 },
+        preschool: { type: Number, default: 0 },
+        schoolAge: { type: Number, default: 0 },
+        teenagers: { type: Number, default: 0 },
+      },
+      previousChildcareExperience: { type: String, trim: true },
+      multipleChildrenExperience: { type: String, trim: true },
+      additionalNeedsExperience: { type: String, trim: true },
     },
 
-    // ── Qualifications ───────────────────────────────────────────────────────
+    // ── STEP 4: Skills ────────────────────────────────────────────────────────
+    skills: {
+      skills: [{ type: String }], // Array of skills from checkboxes
+      languages: { type: String, trim: true },
+      otherSkillsInterests: { type: String, trim: true },
+      drivingLicence: { type: Boolean, default: false },
+      carAccess: { type: Boolean, default: false },
+    },
+
+    // ── STEP 5: Qualifications ───────────────────────────────────────────────
     qualifications: {
+      enhancedDBS: { type: String, enum: ["Yes", "No", "In progress", ""] },
+      paediatricFirstAid: { type: String, enum: ["Yes", "No", ""] },
       childcareQualifications: { type: String, trim: true },
       otherQualifications: { type: String, trim: true },
-      paediatricFirstAid: { type: String },
-      otherFirstAid: { type: String, trim: true },
-      otherCertificates: { type: String, trim: true },
     },
 
-    // ── DBS ──────────────────────────────────────────────────────────────────
-    dbs: {
-      hasCurrentDBS: { type: String, enum: ["Yes", "No", ""] },
-      dbsType: { type: String, trim: true },
-      dbsDate: { type: String },
-      dbsUpdateService: { type: String, enum: ["Yes", "No", ""] },
-      // Certificate number is sensitive — stored but never returned in list endpoints
-      dbsCertNumber: { type: String, trim: true },
-      dbsAdditionalInfo: { type: String, trim: true },
+    // ── STEP 6: Additional Information & Documents ──────────────────────────
+    additionalInfo: {
+      swimming: { type: String, enum: ["Yes", "No", ""] },
+      animalAllergy: { type: String, enum: ["Yes", "No", ""] },
     },
-
-    // ── Right to Work ────────────────────────────────────────────────────────
-    rightToWork: {
-      rightToWork: { type: String, enum: ["Yes", "No", ""] },
-      rightToWorkType: { type: String, trim: true },
-      rightToWorkDetails: { type: String, trim: true },
-    },
-
-    // ── Availability ─────────────────────────────────────────────────────────
-    availability: {
-      startDate: { type: String },
-      workType: { type: String, trim: true },
-      liveInOut: { type: String, trim: true },
-      hoursAvailable: { type: String, trim: true },
-      weekendAvailability: { type: String, enum: ["Yes", "No", ""] },
-      eveningAvailability: { type: String, enum: ["Yes", "No", ""] },
-      preferredHours: { type: String, trim: true },
-      areasWillingToWork: { type: String, trim: true },
-      maxDistance: { type: String, trim: true },
-      // Individual day booleans from frontend day_Monday, day_Tuesday, etc.
-      daysAvailable: [{ type: String }],
-    },
-
-    // ── Skills ────────────────────────────────────────────────────────────────
-    skills: {
-      skillDriving: { type: Boolean, default: false },
-      skillCar: { type: Boolean, default: false },
-      skillNewborn: { type: Boolean, default: false },
-      skillCooking: { type: Boolean, default: false },
-      skillHomework: { type: Boolean, default: false },
-      skillSwimming: { type: Boolean, default: false },
-      skillLanguages: { type: Boolean, default: false },
-      skillSEN: { type: Boolean, default: false },
-      skillSleep: { type: Boolean, default: false },
-      skillSchoolRuns: { type: Boolean, default: false },
-      skillOther: { type: Boolean, default: false },
-      otherSkillsDetail: { type: String, trim: true },
-    },
-
-    // ── About the Candidate ───────────────────────────────────────────────────
-    about: {
-      aboutYourself: { type: String, trim: true },
-      whyNanny: { type: String, trim: true },
-      enjoyAboutChildcare: { type: String, trim: true },
-      familyType: { type: String, trim: true },
-    },
-
-    // ── Declaration ──────────────────────────────────────────────────────────
-    declaration: {
-      declarationAccurate: { type: Boolean },
-      consentReview: { type: Boolean },
-      consentReferences: { type: Boolean },
-      agreePrivacy: { type: Boolean },
-      agreeTerms: { type: Boolean },
-      declarationName: { type: String, trim: true },
-      declarationDate: { type: String },
-    },
-
-    // ── References (embedded) ─────────────────────────────────────────────────
-    references: [referenceSchema],
-
-    // ── Documents (metadata only — binary stored in Cloudinary) ───────────────
+    // Documents (metadata only — binary stored in Cloudinary)
     documents: [documentSchema],
+
+    // ── STEP 7: Declaration ──────────────────────────────────────────────────
+    declaration: {
+      informationAccurate: { type: Boolean, default: false },
+      applicationReviewConsent: { type: Boolean, default: false },
+      referenceConsent: { type: Boolean, default: false },
+      privacyPolicyConsent: { type: Boolean, default: false },
+      termsConsent: { type: Boolean, default: false },
+    },
 
     // ── Admin-only internal notes ─────────────────────────────────────────────
     notes: [noteSchema],
@@ -190,7 +139,8 @@ const applicationSchema = new mongoose.Schema(
 
 // Indexes for admin search/filter
 applicationSchema.index({ "personalDetails.email": 1 });
-applicationSchema.index({ "personalDetails.fullName": "text" });
+applicationSchema.index({ "personalDetails.firstName": "text", "personalDetails.lastName": "text" });
 applicationSchema.index({ createdAt: -1 });
+applicationSchema.index({ "personalDetails.area": 1 });
 
 module.exports = mongoose.model("Application", applicationSchema);

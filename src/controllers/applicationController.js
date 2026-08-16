@@ -74,25 +74,27 @@ const getAllApplications = async (req, res, next) => {
     if (search && search.trim()) {
       const searchRegex = new RegExp(search.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
       filter.$or = [
-        { "personalDetails.fullName": searchRegex },
+        { "personalDetails.firstName": searchRegex },
+        { "personalDetails.lastName": searchRegex },
         { "personalDetails.email": searchRegex },
         { applicationReference: searchRegex },
         { "personalDetails.city": searchRegex },
+        { "personalDetails.area": searchRegex },
       ];
     }
 
-    if (workType) filter["availability.workType"] = workType;
-    if (liveInOut) filter["availability.liveInOut"] = liveInOut;
+    if (workType) filter["workPreferences.workTypes"] = workType;
+    if (liveInOut) filter["workPreferences.workingArrangement"] = liveInOut;
 
     // Build sort
     const sortDirection = sortOrder === "asc" ? 1 : -1;
-    const allowedSortFields = ["createdAt", "updatedAt", "status", "personalDetails.fullName"];
+    const allowedSortFields = ["createdAt", "updatedAt", "status", "personalDetails.firstName", "personalDetails.lastName"];
     const sortField = allowedSortFields.includes(sortBy) ? sortBy : "createdAt";
     const sort = { [sortField]: sortDirection };
 
     const [applications, total] = await Promise.all([
       Application.find(filter)
-        .select("-notes -documents.publicId -dbs.dbsCertNumber") // Never return sensitive fields in list
+        .select("-notes -documents.publicId") // Never return sensitive fields in list
         .sort(sort)
         .skip(skip)
         .limit(limitNum)
@@ -169,7 +171,7 @@ const updateApplicationStatus = async (req, res, next) => {
       req.params.id,
       { status },
       { returnDocument: "after", runValidators: true }
-    ).select("applicationReference status updatedAt personalDetails.fullName");
+    ).select("applicationReference status updatedAt personalDetails.firstName personalDetails.lastName");
 
     if (!application) {
       return errorResponse(res, "Application not found", 404);
