@@ -9,9 +9,11 @@ const ALLOWED_MIME_TYPES = [
   "image/jpg",
   "image/png",
   "application/pdf",
+  "application/msword", // .doc
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // .docx
 ];
 
-const ALLOWED_EXTENSIONS = [".jpg", ".jpeg", ".png", ".pdf"];
+const ALLOWED_EXTENSIONS = [".jpg", ".jpeg", ".png", ".pdf", ".doc", ".docx"];
 
 /**
  * Validate both MIME type and file extension to prevent
@@ -23,7 +25,7 @@ const fileFilter = (req, file, cb) => {
 
   if (!ALLOWED_MIME_TYPES.includes(file.mimetype)) {
     return cb(
-      Object.assign(new Error(`File type not allowed. Accepted: PDF, JPG, JPEG, PNG`), {
+      Object.assign(new Error(`File type not allowed. Accepted: PDF, DOC, DOCX, JPG, JPEG, PNG`), {
         code: "INVALID_FILE_TYPE",
       }),
       false
@@ -59,6 +61,7 @@ const upload = multer({
  * Each field can carry multiple files.
  */
 const uploadDocumentFields = upload.fields([
+  { name: "cv", maxCount: 1 },
   { name: "docId", maxCount: 3 },
   { name: "docDBS", maxCount: 3 },
   { name: "docPFA", maxCount: 3 },

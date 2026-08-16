@@ -109,23 +109,23 @@ const validateApplicationSubmission = (req, res, next) => {
   const body = req.body || {};
 
   const required = [
-    { path: "fullName", label: "Full name" },
+    { path: "firstName", label: "First name" },
+    { path: "lastName", label: "Last name" },
     { path: "email", label: "Email address" },
     { path: "phone", label: "Phone number" },
-    { path: "address", label: "Address" },
+    { path: "address1", label: "Address Line 1" },
     { path: "city", label: "Town / City" },
     { path: "postcode", label: "Postcode" },
-    { path: "nationality", label: "Nationality" },
-    { path: "languages", label: "Languages spoken" },
-    { path: "declarationAccurate", label: "Declaration: information accurate" },
-    { path: "agreePrivacy", label: "Privacy policy agreement" },
-    { path: "agreeTerms", label: "Terms agreement" },
-    { path: "declarationName", label: "Declaration name" },
+    { path: "informationAccurate", label: "Declaration: information accurate" },
+    { path: "applicationReviewConsent", label: "Application review consent" },
+    { path: "referenceConsent", label: "Reference consent" },
+    { path: "privacyPolicyConsent", label: "Privacy policy agreement" },
+    { path: "termsConsent", label: "Terms agreement" },
   ];
 
   required.forEach(({ path, label }) => {
     const value = body[path];
-    if (value === undefined || value === null || value === "" || value === false) {
+    if (value === undefined || value === null || value === "" || value === false || value === "false") {
       errors.push({ field: path, message: `${label} is required` });
     }
   });
@@ -133,11 +133,6 @@ const validateApplicationSubmission = (req, res, next) => {
   // Validate email format
   if (body.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email)) {
     errors.push({ field: "email", message: "Please provide a valid email address" });
-  }
-
-  // Ensure at least one reference
-  if (!Array.isArray(body.references) || body.references.length === 0) {
-    errors.push({ field: "references", message: "At least one reference is required" });
   }
 
   if (errors.length > 0) {
