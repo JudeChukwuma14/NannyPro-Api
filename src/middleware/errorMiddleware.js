@@ -40,9 +40,9 @@ const errorHandler = (err, req, res, next) => {
     const field = Object.keys(err.keyValue || {})[0] || "field";
     const value = err.keyValue ? err.keyValue[field] : "";
     message = `A record with this ${field} already exists.`;
-    if (field === "applicationReference") {
-      // Transparent message is fine here — reference is not sensitive
-      message = `Application reference '${value}' already exists. Please retry.`;
+    if (field.toLowerCase().endsWith("reference")) {
+      // Transparent message is fine here — reference IDs are not sensitive
+      message = `Reference '${value}' already exists. Please retry.`;
     } else if (field === "email") {
       // Do not confirm email existence to the public
       message = "This email address is already registered.";

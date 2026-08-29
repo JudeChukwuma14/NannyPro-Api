@@ -9,6 +9,9 @@ const ENV = require("./config/env");
 const applicationRoutes = require("./routes/applicationRoutes");
 const documentRoutes = require("./routes/documentRoutes");
 const adminRoutes = require("./routes/adminRoutes");
+const nannyRoutes = require("./routes/nannyRoutes");
+const shiftRoutes = require("./routes/shiftRoutes");
+const enquiryRoutes = require("./routes/enquiryRoutes");
 
 // ─── Error handlers ────────────────────────────────────────────────────────
 const { errorHandler, notFound } = require("./middleware/errorMiddleware");
@@ -77,6 +80,9 @@ app.get("/api/v1/health", (req, res) => {
 app.use("/api/v1/applications", applicationRoutes);
 app.use("/api/v1/applications/:id/documents", documentRoutes);
 app.use("/api/v1/admin", adminRoutes);
+app.use("/api/v1/nannies", nannyRoutes);
+app.use("/api/v1/shifts", shiftRoutes);
+app.use("/api/v1/enquiries", enquiryRoutes);
 
 // ─── 404 handler ───────────────────────────────────────────────────────────
 app.use(notFound);

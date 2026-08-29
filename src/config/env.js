@@ -19,6 +19,12 @@ const ENV = {
 
   ADMIN_EMAIL: process.env.ADMIN_EMAIL,
   ADMIN_PASSWORD: process.env.ADMIN_PASSWORD,
+
+  // ── Emergency shift booking ────────────────────────────────────────────
+  SHIFT_CONFIRMATION_WINDOW_MINUTES: Number(process.env.SHIFT_CONFIRMATION_WINDOW_MINUTES) || 15,
+  SHIFT_MAX_ACCEPT_CYCLES: Number(process.env.SHIFT_MAX_ACCEPT_CYCLES) || 3,
+  SHIFT_EXPIRY_SWEEP_INTERVAL_MS: Number(process.env.SHIFT_EXPIRY_SWEEP_INTERVAL_MS) || 60000,
+  NANNY_SET_PASSWORD_TOKEN_TTL_HOURS: Number(process.env.NANNY_SET_PASSWORD_TOKEN_TTL_HOURS) || 168,
 };
 
 // Validate critical variables

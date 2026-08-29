@@ -146,10 +146,201 @@ const validateApplicationSubmission = (req, res, next) => {
   next();
 };
 
+// ─── Shift & Nanny validation ────────────────────────────────────────────────
+
+const SHIFT_STRIPPED_FIELDS = [
+  "status", "shiftReference", "_id", "__v", "assignedNanny", "acceptedAt", "confirmedAt",
+  "confirmationToken", "confirmationExpiresAt", "parentTrackingTokenHash",
+  "excludedNannyIds", "acceptCycleCount", "cancellation",
+];
+
+const NANNY_STRIPPED_FIELDS = [
+  "status", "_id", "__v", "passwordHash", "setPasswordTokenHash", "setPasswordTokenExpiresAt",
+  "vettingStatus", "accountStatus", "applicationRef", "passwordSet",
+];
+
+/**
+ * Remove fields that should never be set directly by an unauthenticated
+ * client submitting a new shift.
+ */
+const stripShiftControlFields = (req, res, next) => {
+  if (req.body && typeof req.body === "object") {
+    SHIFT_STRIPPED_FIELDS.forEach((field) => {
+      delete req.body[field];
+    });
+  }
+  next();
+};
+
+/**
+ * Remove fields that should never be set directly by a nanny (e.g. via the
+ * set-password or availability endpoints).
+ */
+const stripNannyControlFields = (req, res, next) => {
+  if (req.body && typeof req.body === "object") {
+    NANNY_STRIPPED_FIELDS.forEach((field) => {
+      delete req.body[field];
+    });
+  }
+  next();
+};
+
+/**
+ * Read a dot-notation path off a plain object, e.g. getPath(body, "family.email").
+ */
+function getPath(obj, dotPath) {
+  return dotPath.split(".").reduce((acc, key) => (acc == null ? acc : acc[key]), obj);
+}
+
+/**
+ * Validate the minimum required fields for a public emergency-shift submission.
+ * Returns 400 with field-level errors if validation fails.
+ */
+const validateShiftSubmission = (req, res, next) => {
+  const errors = [];
+  const body = req.body || {};
+
+  const required = [
+    { path: "family.firstName", label: "First name" },
+    { path: "family.lastName", label: "Last name" },
+    { path: "family.email", label: "Email address" },
+    { path: "family.phone", label: "Phone number" },
+    { path: "schedule.date", label: "Date" },
+    { path: "schedule.startTime", label: "Start time" },
+    { path: "schedule.finishTime", label: "Finish time" },
+    { path: "location.postcode", label: "Postcode" },
+    { path: "location.area", label: "Area" },
+    { path: "rate.amount", label: "Rate" },
+    { path: "urgency", label: "Urgency" },
+  ];
+
+  required.forEach(({ path, label }) => {
+    const value = getPath(body, path);
+    if (value === undefined || value === null || value === "") {
+      errors.push({ field: path, message: `${label} is required` });
+    }
+  });
+
+  if (!Array.isArray(body.children) || body.children.length === 0) {
+    errors.push({ field: "children", message: "At least one child is required" });
+  }
+
+  if (body.family?.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.family.email)) {
+    errors.push({ field: "family.email", message: "Please provide a valid email address" });
+  }
+
+  if (errors.length > 0) {
+    return res.status(400).json({ success: false, message: "Validation failed", errors });
+  }
+
+  next();
+};
+
+/**
+ * Validate a nanny set-password submission.
+ */
+const validateNannySetPassword = (req, res, next) => {
+  const errors = [];
+  const body = req.body || {};
+
+  if (!body.token) errors.push({ field: "token", message: "Reset token is required" });
+  if (!body.password || body.password.length < 8) {
+    errors.push({ field: "password", message: "Password must be at least 8 characters" });
+  }
+  if (body.password !== body.confirmPassword) {
+    errors.push({ field: "confirmPassword", message: "Passwords do not match" });
+  }
+
+  if (errors.length > 0) {
+    return res.status(400).json({ success: false, message: "Validation failed", errors });
+  }
+
+  next();
+};
+
+// ─── Enquiry validation ───────────────────────────────────────────────────────
+
+const ENQUIRY_STRIPPED_FIELDS = ["status", "enquiryReference", "_id", "__v", "notes"];
+
+/**
+ * Remove fields that should never be set by an unauthenticated client
+ * submitting a new enquiry.
+ */
+const stripEnquiryControlFields = (req, res, next) => {
+  if (req.body && typeof req.body === "object") {
+    ENQUIRY_STRIPPED_FIELDS.forEach((field) => {
+      delete req.body[field];
+    });
+  }
+  next();
+};
+
+/**
+ * Validate the minimum required fields for a public "Request a Nanny"
+ * enquiry submission (RequestNannyPage.jsx's flat getValues() shape).
+ */
+const validateEnquirySubmission = (req, res, next) => {
+  const errors = [];
+  const body = req.body || {};
+
+  const required = [
+    { path: "serviceType", label: "Service type" },
+    { path: "frequency", label: "Frequency" },
+    { path: "preferredStartDate", label: "Preferred start date" },
+    { path: "hoursPerWeek", label: "Hours per week" },
+    { path: "postcode", label: "Postcode" },
+    { path: "area", label: "Area" },
+    { path: "locationType", label: "Location type" },
+    { path: "livingArrangement", label: "Living arrangement" },
+    { path: "experienceRequired", label: "Experience required" },
+    { path: "parentFirstName", label: "First name" },
+    { path: "parentLastName", label: "Last name" },
+    { path: "email", label: "Email address" },
+    { path: "phone", label: "Phone number" },
+    { path: "contactMethod", label: "Preferred contact method" },
+  ];
+
+  required.forEach(({ path, label }) => {
+    const value = body[path];
+    if (value === undefined || value === null || value === "") {
+      errors.push({ field: path, message: `${label} is required` });
+    }
+  });
+
+  if (!Array.isArray(body.daysNeeded) || body.daysNeeded.length === 0) {
+    errors.push({ field: "daysNeeded", message: "Please select at least one day" });
+  }
+  if (!Array.isArray(body.duties) || body.duties.length === 0) {
+    errors.push({ field: "duties", message: "Please select at least one duty" });
+  }
+  if (!Array.isArray(body.children) || body.children.length === 0) {
+    errors.push({ field: "children", message: "At least one child is required" });
+  }
+  if (body.agreeToContact !== true && body.agreeToContact !== "true") {
+    errors.push({ field: "agreeToContact", message: "You must agree to be contacted to continue" });
+  }
+
+  if (body.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email)) {
+    errors.push({ field: "email", message: "Please provide a valid email address" });
+  }
+
+  if (errors.length > 0) {
+    return res.status(400).json({ success: false, message: "Validation failed", errors });
+  }
+
+  next();
+};
+
 module.exports = {
   parseMultipartJsonFields,
   stripControlFields,
   sanitiseBody,
   validateApplicationSubmission,
+  stripShiftControlFields,
+  stripNannyControlFields,
+  validateShiftSubmission,
+  validateNannySetPassword,
+  stripEnquiryControlFields,
+  validateEnquirySubmission,
 };
 

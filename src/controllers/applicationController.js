@@ -3,6 +3,8 @@ const { generateUniqueReference } = require("../utils/generateReference");
 const { successResponse, errorResponse } = require("../utils/apiResponse");
 const { mapFormDataToSchema, processUploadedFiles } = require("../services/applicationService");
 const { generateSignedUrl } = require("../services/cloudinaryService");
+const { createNannyFromApplication } = require("../services/nannyService");
+const ENV = require("../config/env");
 
 // ─── POST /api/v1/applications ───────────────────────────────────────────────
 // Public — no authentication required
@@ -171,13 +173,36 @@ const updateApplicationStatus = async (req, res, next) => {
       req.params.id,
       { status },
       { returnDocument: "after", runValidators: true }
-    ).select("applicationReference status updatedAt personalDetails.firstName personalDetails.lastName");
+    ).select("applicationReference status updatedAt personalDetails.firstName personalDetails.lastName personalDetails.email");
 
     if (!application) {
       return errorResponse(res, "Application not found", 404);
     }
 
-    return successResponse(res, application, `Status updated to '${status}'`);
+    // Promote an approved application into a Nanny account. Idempotent —
+    // re-approving an already-promoted application is a no-op that just
+    // echoes back the existing nanny's id/email (see nannyService.js).
+    let nannyPromotion = null;
+    if (status === "Approved") {
+      const fullApplication = await Application.findById(application._id);
+      const { nanny, setPasswordToken, alreadyPromoted } = await createNannyFromApplication(fullApplication);
+      nannyPromotion = {
+        nannyId: nanny._id,
+        email: nanny.email,
+        alreadyPromoted: !!alreadyPromoted,
+        ...(setPasswordToken
+          ? { setPasswordUrl: `${ENV.CLIENT_URL}/nanny/set-password/${setPasswordToken}` }
+          : {}),
+      };
+    }
+
+    return successResponse(
+      res,
+      application,
+      `Status updated to '${status}'`,
+      200,
+      nannyPromotion ? { nannyPromotion } : {}
+    );
   } catch (err) {
     next(err);
   }
