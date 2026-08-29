@@ -7,18 +7,6 @@ const { uploadFile } = require("./cloudinaryService");
  * @returns {Object} Nested object ready to pass to new Application(...)
  */
 const mapFormDataToSchema = (formData) => {
-  // Handle skills array parsing if it comes as a stringified array from FormData
-  let parsedSkills = [];
-  try {
-    if (formData.skills) {
-      parsedSkills = typeof formData.skills === 'string' ? JSON.parse(formData.skills) : formData.skills;
-    }
-  } catch (e) {
-    if (typeof formData.skills === 'string') {
-      parsedSkills = formData.skills.split(',').map(s => s.trim());
-    }
-  }
-
   // Handle workTypes
   let parsedWorkTypes = [];
   try {
@@ -70,15 +58,10 @@ const mapFormDataToSchema = (formData) => {
         schoolAge: parseNum(formData.schoolAge),
         teenagers: parseNum(formData.teenagers),
       },
-      previousChildcareExperience: formData.previousChildcareExperience,
-      multipleChildrenExperience: formData.multipleChildrenExperience,
-      additionalNeedsExperience: formData.additionalNeedsExperience,
     },
 
     skills: {
-      skills: Array.isArray(parsedSkills) ? parsedSkills : [],
       languages: formData.languages,
-      otherSkillsInterests: formData.otherSkillsInterests,
       drivingLicence: formData.drivingLicence === true || formData.drivingLicence === "true",
       carAccess: formData.carAccess === true || formData.carAccess === "true",
     },
@@ -86,13 +69,6 @@ const mapFormDataToSchema = (formData) => {
     qualifications: {
       enhancedDBS: formData.enhancedDBS,
       paediatricFirstAid: formData.paediatricFirstAid,
-      childcareQualifications: formData.childcareQualifications,
-      otherQualifications: formData.otherQualifications,
-    },
-
-    additionalInfo: {
-      swimming: formData.swimming,
-      animalAllergy: formData.animalAllergy,
     },
 
     declaration: {

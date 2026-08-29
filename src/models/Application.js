@@ -90,16 +90,11 @@ const applicationSchema = new mongoose.Schema(
         schoolAge: { type: Number, default: 0 },
         teenagers: { type: Number, default: 0 },
       },
-      previousChildcareExperience: { type: String, trim: true },
-      multipleChildrenExperience: { type: String, trim: true },
-      additionalNeedsExperience: { type: String, trim: true },
     },
 
-    // ── STEP 4: Skills ────────────────────────────────────────────────────────
+    // ── STEP 4: Driving & Languages ───────────────────────────────────────────
     skills: {
-      skills: [{ type: String }], // Array of skills from checkboxes
       languages: { type: String, trim: true },
-      otherSkillsInterests: { type: String, trim: true },
       drivingLicence: { type: Boolean, default: false },
       carAccess: { type: Boolean, default: false },
     },
@@ -108,15 +103,8 @@ const applicationSchema = new mongoose.Schema(
     qualifications: {
       enhancedDBS: { type: String, enum: ["Yes", "No", "In progress", ""] },
       paediatricFirstAid: { type: String, enum: ["Yes", "No", ""] },
-      childcareQualifications: { type: String, trim: true },
-      otherQualifications: { type: String, trim: true },
     },
 
-    // ── STEP 6: Additional Information & Documents ──────────────────────────
-    additionalInfo: {
-      swimming: { type: String, enum: ["Yes", "No", ""] },
-      animalAllergy: { type: String, enum: ["Yes", "No", ""] },
-    },
     // Documents (metadata only — binary stored in Cloudinary)
     documents: [documentSchema],
 
