@@ -12,6 +12,12 @@ const adminRoutes = require("./routes/adminRoutes");
 const nannyRoutes = require("./routes/nannyRoutes");
 const shiftRoutes = require("./routes/shiftRoutes");
 const enquiryRoutes = require("./routes/enquiryRoutes");
+const familyRoutes = require("./routes/familyRoutes");
+const childRoutes = require("./routes/childRoutes");
+const contentRoutes = require("./routes/contentRoutes");
+const communicationRoutes = require("./routes/communicationRoutes");
+const { getAllDocuments, getDocumentUrl } = require("./controllers/documentController");
+const { protect } = require("./middleware/authMiddleware");
 
 // ─── Error handlers ────────────────────────────────────────────────────────
 const { errorHandler, notFound } = require("./middleware/errorMiddleware");
@@ -22,10 +28,8 @@ const app = express();
 app.use(helmet());
 
 // ─── CORS ──────────────────────────────────────────────────────────────────
-// Only allow the configured React frontend origin — never wildcard in production
 const corsOptions = {
   origin: (origin, callback) => {
-    // Allow requests with no origin (mobile apps, curl, Postman) in dev
     if (!origin || ENV.NODE_ENV !== "production") {
       return callback(null, true);
     }
@@ -83,6 +87,15 @@ app.use("/api/v1/admin", adminRoutes);
 app.use("/api/v1/nannies", nannyRoutes);
 app.use("/api/v1/shifts", shiftRoutes);
 app.use("/api/v1/enquiries", enquiryRoutes);
+app.use("/api/v1/families", familyRoutes);
+app.use("/api/v1/children", childRoutes);
+app.use("/api/v1/content", contentRoutes);
+app.use("/api/v1/communications", communicationRoutes);
+
+// Cross-application document repository — a single read-only aggregate, not
+// a resource with its own lifecycle, so it doesn't get a dedicated route file.
+app.get("/api/v1/documents", protect, getAllDocuments);
+app.get("/api/v1/documents/:applicationId/:documentId/url", protect, getDocumentUrl);
 
 // ─── 404 handler ───────────────────────────────────────────────────────────
 app.use(notFound);

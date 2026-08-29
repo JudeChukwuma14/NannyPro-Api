@@ -3,6 +3,7 @@ const Nanny = require("../models/Nanny");
 const ENV = require("../config/env");
 const { successResponse, errorResponse } = require("../utils/apiResponse");
 const { isTokenValid } = require("../utils/tokenUtils");
+const { logAction } = require("../services/auditLogService");
 
 function signNannyToken(nanny) {
   return jwt.sign({ id: nanny._id, email: nanny.email, role: "nanny" }, ENV.JWT_SECRET, {
@@ -128,7 +129,10 @@ const updateMyAvailability = async (req, res, next) => {
 // Admin only
 const getAllNannies = async (req, res, next) => {
   try {
-    const { page = 1, limit = 20, vettingStatus, accountStatus, search } = req.query;
+    const {
+      page = 1, limit = 20, vettingStatus, accountStatus, search,
+      emergencyBookings, availableToday, availableEvenings, availableWeekends,
+    } = req.query;
     const pageNum = Math.max(1, parseInt(page, 10));
     const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10)));
     const skip = (pageNum - 1) * limitNum;
@@ -136,6 +140,10 @@ const getAllNannies = async (req, res, next) => {
     const filter = {};
     if (vettingStatus) filter.vettingStatus = vettingStatus;
     if (accountStatus) filter.accountStatus = accountStatus;
+    if (emergencyBookings === "true") filter["availability.emergencyBookings"] = true;
+    if (availableToday === "true") filter["availability.availableToday"] = true;
+    if (availableEvenings === "true") filter["availability.availableEvenings"] = true;
+    if (availableWeekends === "true") filter["availability.availableWeekends"] = true;
     if (search && search.trim()) {
       const searchRegex = new RegExp(search.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
       filter.$or = [
@@ -184,6 +192,14 @@ const updateVettingStatus = async (req, res, next) => {
     }
     const nanny = await Nanny.findByIdAndUpdate(req.params.id, { vettingStatus }, { returnDocument: "after", runValidators: true });
     if (!nanny) return errorResponse(res, "Nanny not found", 404);
+
+    logAction(req, {
+      action: "nanny.vetting_status_changed",
+      targetType: "Nanny",
+      targetId: nanny._id,
+      summary: `Set ${nanny.email}'s vetting status to '${vettingStatus}'`,
+    });
+
     return successResponse(res, nanny, `Vetting status updated to '${vettingStatus}'`);
   } catch (err) {
     next(err);
@@ -200,7 +216,46 @@ const updateAccountStatus = async (req, res, next) => {
     }
     const nanny = await Nanny.findByIdAndUpdate(req.params.id, { accountStatus }, { returnDocument: "after", runValidators: true });
     if (!nanny) return errorResponse(res, "Nanny not found", 404);
+
+    logAction(req, {
+      action: "nanny.account_status_changed",
+      targetType: "Nanny",
+      targetId: nanny._id,
+      summary: `Set ${nanny.email}'s account status to '${accountStatus}'`,
+    });
+
     return successResponse(res, nanny, `Account status updated to '${accountStatus}'`);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ─── PATCH /api/v1/nannies/:id/availability ──────────────────────────────────
+// Admin only — same shape as updateMyAvailability, but admin-gated and
+// targets :id instead of the caller's own record (e.g. a nanny calls in and
+// says she's free today — an admin can flip it on her behalf).
+const updateNannyAvailabilityAdmin = async (req, res, next) => {
+  try {
+    const { availableToday, emergencyBookings, maxTravelDistanceMiles, availableEvenings, availableWeekends } = req.body;
+
+    const nanny = await Nanny.findByIdAndUpdate(
+      req.params.id,
+      {
+        $set: {
+          "availability.availableToday": !!availableToday,
+          "availability.emergencyBookings": !!emergencyBookings,
+          "availability.maxTravelDistanceMiles":
+            maxTravelDistanceMiles === "" || maxTravelDistanceMiles == null ? null : Number(maxTravelDistanceMiles),
+          "availability.availableEvenings": !!availableEvenings,
+          "availability.availableWeekends": !!availableWeekends,
+        },
+      },
+      { returnDocument: "after", runValidators: true }
+    );
+
+    if (!nanny) return errorResponse(res, "Nanny not found", 404);
+
+    return successResponse(res, nanny, "Availability updated");
   } catch (err) {
     next(err);
   }
@@ -215,4 +270,5 @@ module.exports = {
   getNannyById,
   updateVettingStatus,
   updateAccountStatus,
+  updateNannyAvailabilityAdmin,
 };

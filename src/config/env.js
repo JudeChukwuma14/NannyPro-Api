@@ -25,6 +25,12 @@ const ENV = {
   SHIFT_MAX_ACCEPT_CYCLES: Number(process.env.SHIFT_MAX_ACCEPT_CYCLES) || 3,
   SHIFT_EXPIRY_SWEEP_INTERVAL_MS: Number(process.env.SHIFT_EXPIRY_SWEEP_INTERVAL_MS) || 60000,
   NANNY_SET_PASSWORD_TOKEN_TTL_HOURS: Number(process.env.NANNY_SET_PASSWORD_TOKEN_TTL_HOURS) || 168,
+
+  // ── Outbound email — Gmail via OAuth2 (optional — sending fails gracefully until these are set) ──
+  GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
+  GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
+  GOOGLE_MAIL_HOST: process.env.GOOGLE_MAIL_HOST,
+  GOOGLE_REFRESH_TOKEN: process.env.GOOGLE_REFRESH_TOKEN,
 };
 
 // Validate critical variables

@@ -115,4 +115,57 @@ const deleteDocument = async (req, res, next) => {
   }
 };
 
-module.exports = { uploadDocuments, getDocuments, deleteDocument };
+// ─── GET /api/v1/documents ────────────────────────────────────────────────────
+// Admin — flat cross-application document repository (aggregate, read-only)
+const getAllDocuments = async (req, res, next) => {
+  try {
+    const { type } = req.query;
+
+    const applications = await Application.find({ "documents.0": { $exists: true } })
+      .select("applicationReference personalDetails.firstName personalDetails.lastName documents")
+      .lean();
+
+    let rows = [];
+    for (const app of applications) {
+      for (const doc of app.documents || []) {
+        rows.push({
+          applicationId: app._id,
+          applicationReference: app.applicationReference,
+          applicantName: [app.personalDetails?.firstName, app.personalDetails?.lastName].filter(Boolean).join(" "),
+          documentId: doc._id,
+          type: doc.type,
+          originalName: doc.originalName,
+          format: doc.format,
+          bytes: doc.bytes,
+          uploadedAt: doc.uploadedAt,
+        });
+      }
+    }
+
+    if (type) rows = rows.filter((r) => r.type === type);
+    rows.sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
+
+    return successResponse(res, rows, "Documents retrieved successfully");
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ─── GET /api/v1/documents/:applicationId/:documentId/url ───────────────────
+// Admin — generates a signed URL for one document on demand (never cached/listed)
+const getDocumentUrl = async (req, res, next) => {
+  try {
+    const application = await Application.findById(req.params.applicationId).select("documents").lean();
+    if (!application) return errorResponse(res, "Application not found", 404);
+
+    const document = (application.documents || []).find((d) => String(d._id) === req.params.documentId);
+    if (!document) return errorResponse(res, "Document not found", 404);
+
+    const signedUrl = generateSignedUrl(document.publicId, document.resourceType, 3600);
+    return successResponse(res, { signedUrl }, "Signed URL generated");
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = { uploadDocuments, getDocuments, deleteDocument, getAllDocuments, getDocumentUrl };

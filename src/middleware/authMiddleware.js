@@ -33,6 +33,9 @@ const protect = async (req, res, next) => {
     if (!admin) {
       return errorResponse(res, "Account no longer exists.", 401);
     }
+    if (admin.isActive === false) {
+      return errorResponse(res, "This account has been deactivated.", 401);
+    }
 
     req.user = admin;
     next();

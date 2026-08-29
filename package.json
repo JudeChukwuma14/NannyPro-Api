@@ -12,7 +12,8 @@
   "scripts": {
     "dev": "nodemon app.js",
     "start": "node app.js",
-    "seed:admin": "node src/utils/seedAdmin.js"
+    "seed:admin": "node src/utils/seedAdmin.js",
+    "seed:content": "node src/utils/seedContent.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
@@ -26,6 +27,7 @@
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.9.2",
     "multer": "^2.2.0",
+    "nodemailer": "^9.0.6",
     "socket.io": "^4.8.3"
   },
   "devDependencies": {

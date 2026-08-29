@@ -11,6 +11,7 @@ const {
   trackShift,
 } = require("../services/shiftService");
 const { isNannyEligibleForShift } = require("../services/shiftMatchingService");
+const { logAction } = require("../services/auditLogService");
 
 function getIo(req) {
   return req.app.get("io");
@@ -220,6 +221,13 @@ const adminCancel = async (req, res, next) => {
     const result = await cancelShift(shift, { cancelledBy: "Admin", reason: req.body.reason }, getIo(req));
     if (result.error === "NOT_CANCELLABLE") return errorResponse(res, "This shift can no longer be cancelled", 409);
 
+    logAction(req, {
+      action: "shift.cancelled",
+      targetType: "Shift",
+      targetId: result.shift._id,
+      summary: `Cancelled ${result.shift.shiftReference}${req.body.reason ? `: ${req.body.reason}` : ""}`,
+    });
+
     return successResponse(res, result.shift, "Shift cancelled");
   } catch (err) {
     next(err);
@@ -232,6 +240,13 @@ const adminComplete = async (req, res, next) => {
   try {
     const result = await completeShift(req.params.id);
     if (result.error === "NOT_COMPLETABLE") return errorResponse(res, "Only a Confirmed shift can be marked Completed", 409);
+
+    logAction(req, {
+      action: "shift.completed",
+      targetType: "Shift",
+      targetId: result.shift._id,
+      summary: `Marked ${result.shift.shiftReference} as Completed`,
+    });
 
     return successResponse(res, result.shift, "Shift marked as completed");
   } catch (err) {

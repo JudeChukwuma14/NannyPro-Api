@@ -11,6 +11,7 @@ const {
   getNannyById,
   updateVettingStatus,
   updateAccountStatus,
+  updateNannyAvailabilityAdmin,
 } = require("../controllers/nannyController");
 
 const { protect } = require("../middleware/authMiddleware");
@@ -56,5 +57,8 @@ router.patch("/:id/vetting-status", protect, updateVettingStatus);
 
 // PATCH /api/v1/nannies/:id/account-status
 router.patch("/:id/account-status", protect, updateAccountStatus);
+
+// PATCH /api/v1/nannies/:id/availability
+router.patch("/:id/availability", protect, updateNannyAvailabilityAdmin);
 
 module.exports = router;

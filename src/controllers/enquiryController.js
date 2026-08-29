@@ -2,6 +2,8 @@ const Enquiry = require("../models/Enquiry");
 const { generateUniqueReference } = require("../utils/generateReference");
 const { successResponse, errorResponse } = require("../utils/apiResponse");
 const { mapFormDataToSchema } = require("../services/enquiryService");
+const { logAction } = require("../services/auditLogService");
+const { sendEnquiryReceivedEmail } = require("../services/notificationService");
 
 // ─── POST /api/v1/enquiries ──────────────────────────────────────────────────
 // Public — no authentication required
@@ -15,6 +17,8 @@ const submitEnquiry = async (req, res, next) => {
       status: "New", // always forced to 'New' — never trusts frontend
       ...enquiryData,
     });
+
+    sendEnquiryReceivedEmail(enquiry);
 
     return successResponse(
       res,
@@ -101,6 +105,13 @@ const updateEnquiryStatus = async (req, res, next) => {
     ).select("enquiryReference status updatedAt parent.firstName parent.lastName");
 
     if (!enquiry) return errorResponse(res, "Enquiry not found", 404);
+
+    logAction(req, {
+      action: "enquiry.status_changed",
+      targetType: "Enquiry",
+      targetId: enquiry._id,
+      summary: `Set ${enquiry.enquiryReference} to '${status}'`,
+    });
 
     return successResponse(res, enquiry, `Status updated to '${status}'`);
   } catch (err) {

@@ -1,9 +1,16 @@
 const Shift = require("../models/Shift");
 const Family = require("../models/Family");
+const Nanny = require("../models/Nanny");
 const ENV = require("../config/env");
 const { generateToken, isTokenValid, isTokenMatch } = require("../utils/tokenUtils");
 const { generateUniqueReference } = require("../utils/generateReference");
 const { getEligibleNannies, isNannyEligibleForShift } = require("./shiftMatchingService");
+const {
+  sendShiftConfirmationRequestEmail,
+  sendShiftAcceptExpiredEmail,
+  sendShiftExpiredNoConfirmationEmail,
+  sendShiftCancelledNannyEmail,
+} = require("./notificationService");
 
 const CONFIRMATION_WINDOW_MS = () => ENV.SHIFT_CONFIRMATION_WINDOW_MINUTES * 60 * 1000;
 
@@ -181,6 +188,10 @@ async function acceptShift(shiftId, nanny, io) {
   if (!updated) return { error: "ALREADY_TAKEN" };
 
   emitShiftAccepted(io, updated, nanny, confirmationToken);
+
+  const family = await Family.findById(updated.family).select("email firstName").lean();
+  sendShiftConfirmationRequestEmail(family, updated);
+
   return { shift: updated, confirmationToken };
 }
 
@@ -237,6 +248,15 @@ async function cancelShift(shift, { cancelledBy, reason }, io) {
   if (!updated) return { error: "NOT_CANCELLABLE" };
 
   emitShiftCancelled(io, updated);
+
+  if (updated.assignedNanny) {
+    Nanny.findById(updated.assignedNanny)
+      .select("email personalDetails.firstName")
+      .lean()
+      .then((n) => sendShiftCancelledNannyEmail(n, updated))
+      .catch(() => {});
+  }
+
   return { shift: updated };
 }
 
@@ -304,7 +324,14 @@ async function sweepExpiredConfirmations(io) {
       );
       if (!reopened) continue; // already handled by another tick/instance
 
-      if (timedOutNannyId) emitShiftAcceptExpired(io, timedOutNannyId, reopened);
+      if (timedOutNannyId) {
+        emitShiftAcceptExpired(io, timedOutNannyId, reopened);
+        Nanny.findById(timedOutNannyId)
+          .select("email personalDetails.firstName")
+          .lean()
+          .then((n) => sendShiftAcceptExpiredEmail(n, reopened))
+          .catch(() => {});
+      }
       await broadcastShiftToEligibleNannies(io, reopened);
     } else {
       const finalised = await Shift.findOneAndUpdate(
@@ -314,8 +341,21 @@ async function sweepExpiredConfirmations(io) {
       );
       if (!finalised) continue;
 
-      if (timedOutNannyId) emitShiftAcceptExpired(io, timedOutNannyId, finalised);
+      if (timedOutNannyId) {
+        emitShiftAcceptExpired(io, timedOutNannyId, finalised);
+        Nanny.findById(timedOutNannyId)
+          .select("email personalDetails.firstName")
+          .lean()
+          .then((n) => sendShiftAcceptExpiredEmail(n, finalised))
+          .catch(() => {});
+      }
       emitShiftExpired(io, finalised);
+
+      Family.findById(finalised.family)
+        .select("email firstName")
+        .lean()
+        .then((f) => sendShiftExpiredNoConfirmationEmail(f, finalised))
+        .catch(() => {});
     }
   }
 }

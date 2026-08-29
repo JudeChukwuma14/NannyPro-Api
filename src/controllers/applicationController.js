@@ -4,6 +4,8 @@ const { successResponse, errorResponse } = require("../utils/apiResponse");
 const { mapFormDataToSchema, processUploadedFiles } = require("../services/applicationService");
 const { generateSignedUrl } = require("../services/cloudinaryService");
 const { createNannyFromApplication } = require("../services/nannyService");
+const { logAction } = require("../services/auditLogService");
+const { sendApplicationReceivedEmail, sendNannyApprovedEmail } = require("../services/notificationService");
 const ENV = require("../config/env");
 
 // ─── POST /api/v1/applications ───────────────────────────────────────────────
@@ -29,6 +31,8 @@ const submitApplication = async (req, res, next) => {
       ...applicationData,
       documents,
     });
+
+    sendApplicationReceivedEmail(application);
 
     return successResponse(
       res,
@@ -179,6 +183,13 @@ const updateApplicationStatus = async (req, res, next) => {
       return errorResponse(res, "Application not found", 404);
     }
 
+    logAction(req, {
+      action: "application.status_changed",
+      targetType: "Application",
+      targetId: application._id,
+      summary: `Set ${application.applicationReference} to '${status}'`,
+    });
+
     // Promote an approved application into a Nanny account. Idempotent —
     // re-approving an already-promoted application is a no-op that just
     // echoes back the existing nanny's id/email (see nannyService.js).
@@ -194,6 +205,10 @@ const updateApplicationStatus = async (req, res, next) => {
           ? { setPasswordUrl: `${ENV.CLIENT_URL}/nanny/set-password/${setPasswordToken}` }
           : {}),
       };
+
+      if (!alreadyPromoted) {
+        sendNannyApprovedEmail(nanny, nannyPromotion.setPasswordUrl);
+      }
     }
 
     return successResponse(
