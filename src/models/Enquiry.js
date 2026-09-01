@@ -34,20 +34,20 @@ const enquirySchema = new mongoose.Schema(
       index: true,
     },
 
-    // ── STEP 1: Service Requirements ─────────────────────────────────────────
+    // ── STEP 1: Service & Schedule ───────────────────────────────────────────
     serviceType: { type: String, trim: true, required: true },
     frequency: { type: String, enum: ["ongoing", "temporary", "one-off"], required: true },
     isUrgent: { type: Boolean, default: false },
     preferredStartDate: { type: String, required: true },
 
-    // ── STEP 2: Schedule ──────────────────────────────────────────────────────
+    // (Part of Step 1)
     schedule: {
       daysNeeded: [{ type: String }],
       hoursPerWeek: { type: String, trim: true },
       scheduleNotes: { type: String, trim: true },
     },
 
-    // ── STEP 3: Children ──────────────────────────────────────────────────────
+    // ── STEP 2: Family & Children ────────────────────────────────────────────
     children: {
       type: [childSchema],
       validate: {
@@ -56,7 +56,7 @@ const enquirySchema = new mongoose.Schema(
       },
     },
 
-    // ── STEP 4: Location & Travel ─────────────────────────────────────────────
+    // ── STEP 3: Contact & Location ───────────────────────────────────────────
     location: {
       postcode: { type: String, trim: true, required: true },
       area: { type: String, trim: true, required: true },
@@ -64,7 +64,7 @@ const enquirySchema = new mongoose.Schema(
       livingArrangement: { type: String, trim: true, required: true },
     },
 
-    // ── STEP 5: Family Needs & Duties ─────────────────────────────────────────
+    // (Part of Step 2)
     needs: {
       duties: [{ type: String }],
       experienceRequired: { type: String, trim: true },
@@ -72,7 +72,7 @@ const enquirySchema = new mongoose.Schema(
       specialRequirements: { type: String, trim: true },
     },
 
-    // ── STEP 6: Parent Details ────────────────────────────────────────────────
+    // (Part of Step 3)
     parent: {
       firstName: { type: String, trim: true, required: true },
       lastName: { type: String, trim: true, required: true },
@@ -81,7 +81,7 @@ const enquirySchema = new mongoose.Schema(
       contactMethod: { type: String, trim: true },
     },
 
-    // ── STEP 7: Declaration ───────────────────────────────────────────────────
+    // ── STEP 4: Declaration ──────────────────────────────────────────────────
     agreeToContact: { type: Boolean, default: false },
 
     // ── Admin-only internal notes ─────────────────────────────────────────────
