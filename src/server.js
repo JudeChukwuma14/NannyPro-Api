@@ -33,7 +33,8 @@ const corsOptions = {
     if (!origin || ENV.NODE_ENV !== "production") {
       return callback(null, true);
     }
-    if (origin === ENV.CLIENT_URL) {
+    const allowedOrigins = ENV.CLIENT_URL.split(",").map((url) => url.trim());
+    if (allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
     callback(new Error(`CORS: origin '${origin}' is not allowed`));
